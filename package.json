@@ -1,0 +1,31 @@
+{
+  "name": "ratchetchat",
+  "version": "1.0.0",
+  "description": "RatchetChat - End-to-End Encrypted Messaging with Forward Secrecy & Attack Demonstration Toolkit",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "test": "node tests/x3dh.test.js && node tests/double_ratchet.test.js && node tests/safety_number.test.js && node tests/end_to_end.test.js",
+    "test:unit": "node tests/x3dh.test.js && node tests/double_ratchet.test.js && node tests/safety_number.test.js",
+    "test:e2e": "node tests/end_to_end.test.js",
+    "benchmark": "node benchmarks/run_benchmarks.js",
+    "attack:sniff": "node attack_toolkit/eavesdrop_attack.js",
+    "attack:tamper": "node attack_toolkit/tamper_replay_attack.js",
+    "attack:mitm": "node attack_toolkit/mitm_attack.js",
+    "bundle:curves": "node scripts/bundle-curves.js"
+  },
+  "author": "Usman Wajid (23L-6038) - FAST NUCES",
+  "license": "MIT",
+  "type": "commonjs",
+  "dependencies": {
+    "@noble/curves": "^2.4.0",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.10",
+    "esbuild": "^0.28.2",
+    "express": "^5.3.0",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.12.1",
+    "socket.io": "^4.8.4"
+  }
+}

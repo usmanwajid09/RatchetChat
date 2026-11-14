@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RatchetChat - End-to-End Encrypted Messaging with Forward Secrecy</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body>
+
+  <!-- Top Navigation Header -->
+  <header class="app-header">
+    <div class="brand-section">
+      <h1><i class="bi bi-shield-lock-fill"></i> RatchetChat</h1>
+      <div class="meta-tag">
+        Signal Protocol Implementation • <strong>Usman Wajid (23L-6038)</strong> • CS3002 Info Security
+      </div>
+    </div>
+
+    <div class="header-controls">
+      <!-- Security Mode Switch -->
+      <div id="modeToggleBtn" class="security-mode-toggle secure" title="Click to toggle between Secure Mode and Weak Mode for attack demonstrations">
+        <span id="modeIcon"><i class="bi bi-shield-check"></i></span>
+        <span id="modeLabel" style="margin-left: 6px; font-weight: 600;">Secure Mode (Signal E2EE)</span>
+      </div>
+
+      <!-- User status badge & Logout -->
+      <div id="headerUserSection" style="display: none; align-items: center; gap: 10px;">
+        <span class="badge" style="background: #0369a1; padding: 6px 12px; border-radius: 20px;">
+          <i class="bi bi-person-circle"></i> <span id="headerUsername">User</span>
+        </span>
+        <button id="logoutBtn" class="btn-secondary" style="padding: 4px 10px; font-size: 0.8rem;">
+          <i class="bi bi-box-arrow-right"></i> Logout
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Security Alert Banner (Active on MitM / Key Change) -->
+  <div id="securityAlertBanner" class="security-alert-banner" style="display: none;">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <i class="bi bi-exclamation-triangle-fill" style="font-size: 1.3rem;"></i>
+      <span id="securityAlertText">SECURITY ALERT: Contact identity key has changed! Potential Man-in-the-Middle attack in progress.</span>
+    </div>
+    <button id="dismissAlertBtn" class="btn-secondary" style="background: rgba(0,0,0,0.4); border: none; font-size: 0.8rem;">Acknowledge</button>
+  </div>
+
+  <!-- Navigation Tabs Bar -->
+  <nav class="nav-tabs-bar" id="navigationTabBar" style="display: none;">
+    <button class="nav-tab-btn active" data-tab="chatTab"><i class="bi bi-chat-dots-fill"></i> End-to-End Chat</button>
+    <button class="nav-tab-btn" data-tab="attackLabTab"><i class="bi bi-lightning-charge-fill"></i> Attacker Demonstration Lab</button>
+    <button class="nav-tab-btn" data-tab="inspectorTab"><i class="bi bi-hdd-network-fill"></i> Relay Packet Inspector</button>
+  </nav>
+
+  <!-- Main Viewport Area -->
+  <main class="main-viewport">
+
+    <!-- 1. AUTH SCREEN (LOGIN / REGISTER) -->
+    <div id="authScreen" style="width: 100%; display: flex; justify-content: center; align-items: center; padding: 20px;">
+      <div class="modal-content" style="max-width: 460px;">
+        <div style="text-align: center; margin-bottom: 24px;">
+          <i class="bi bi-shield-lock" style="font-size: 3rem; color: var(--accent-blue);"></i>
+          <h2 style="margin-top: 10px;">RatchetChat Login</h2>
+          <p class="meta-tag" style="margin-top: 4px;">Zero-Knowledge Asynchronous Messaging with Forward Secrecy</p>
+        </div>
+
+        <!-- Quick 1-Click Tester Profiles -->
+        <div style="background: rgba(56, 189, 248, 0.08); border: 1px dashed var(--accent-blue); border-radius: 8px; padding: 12px; margin-bottom: 18px;">
+          <div style="font-size: 0.75rem; font-weight: 600; color: var(--accent-blue); margin-bottom: 8px;">
+            <i class="bi bi-lightning-fill"></i> Quick 1-Click Evaluation Accounts:
+          </div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button class="btn-secondary quick-user-btn" data-user="alice" style="flex: 1; padding: 6px;">Alice (Initiator)</button>
+            <button class="btn-secondary quick-user-btn" data-user="bob" style="flex: 1; padding: 6px;">Bob (Recipient)</button>
+            <button class="btn-secondary quick-user-btn" data-user="charlie" style="flex: 1; padding: 6px;">Charlie</button>
+          </div>
+        </div>
+
+        <form id="authForm">
+          <div style="margin-bottom: 14px;">
+            <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Username</label>
+            <input type="text" id="authUsernameInput" required style="width: 100%; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; color: white;">
+          </div>
+          <div style="margin-bottom: 18px;">
+            <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Password</label>
+            <input type="password" id="authPasswordInput" required style="width: 100%; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; color: white;">
+          </div>
+          <div style="display: flex; gap: 10px;">
+            <button type="button" id="authLoginBtn" class="btn-primary" style="flex: 1;">Login</button>
+            <button type="button" id="authRegisterBtn" class="btn-secondary" style="flex: 1;">Create Account</button>
+          </div>
+        </form>
+        <div id="authStatusMsg" style="margin-top: 12px; font-size: 0.85rem; text-align: center;"></div>
+      </div>
+    </div>
+
+    <!-- 2. CHAT TAB VIEW -->
+    <div id="chatTab" class="chat-layout" style="display: none;">
+      <!-- Sidebar Contacts -->
+      <aside class="contacts-sidebar">
+        <div class="user-card">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div class="username"><i class="bi bi-person-fill"></i> <span id="sidebarMyUsername">Me</span></div>
+            <span class="status-dot online" title="Connected to E2EE Relay"></span>
+          </div>
+          <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 6px;">My Identity Fingerprint:</div>
+          <div class="fingerprint" id="myFingerprintPreview">Generating...</div>
+        </div>
+
+        <div style="padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color);">
+          <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Direct Contacts</span>
+          <button id="refreshContactsBtn" class="btn-secondary" style="padding: 2px 8px; font-size: 0.75rem;" title="Refresh contacts list"><i class="bi bi-arrow-clockwise"></i></button>
+        </div>
+
+        <ul class="contacts-list" id="contactsListContainer">
+          <!-- Dynamically populated contacts -->
+        </ul>
+      </aside>
+
+      <!-- Main Chat Area -->
+      <section class="chat-main">
+        <!-- Empty State (No contact selected) -->
+        <div id="noContactSelectedView" style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; color: var(--text-muted);">
+          <i class="bi bi-chat-square-lock" style="font-size: 4rem; margin-bottom: 16px; color: var(--accent-blue);"></i>
+          <h3>Select a Contact to Begin Encrypted Session</h3>
+          <p style="font-size: 0.85rem; margin-top: 6px;">Messages are encrypted in the browser with Double Ratchet & X3DH.</p>
+        </div>
+
+        <!-- Active Chat Window -->
+        <div id="activeChatWindow" style="display: none; height: 100%; flex-direction: column;">
+          <!-- Top Contact Bar -->
+          <div class="chat-header">
+            <div>
+              <div style="font-weight: 700; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;">
+                <span id="activeContactName">Bob</span>
+                <span id="activeContactOnlineDot" class="status-dot"></span>
+              </div>
+              <small id="activeContactSessionStatus" style="font-size: 0.75rem; color: var(--accent-green);"><i class="bi bi-lock-fill"></i> Double Ratchet Active</small>
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+              <button id="viewSafetyNumberBtn" class="btn-secondary" style="font-size: 0.8rem; display: flex; align-items: center; gap: 6px;">
+                <i class="bi bi-patch-check"></i> <span id="safetyBtnLabel">Safety Number</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Cryptographic Live Telemetry Bar -->
+          <div class="telemetry-bar">
+            <span><i class="bi bi-key-fill text-warning"></i> RK: <span id="telemetryRootKey">Uninitialized</span></span>
+            <span><i class="bi bi-arrow-up-right text-info"></i> Sent: <span id="telemetrySentCount">0</span></span>
+            <span><i class="bi bi-arrow-down-left text-success"></i> Received: <span id="telemetryRecvCount">0</span></span>
+            <span><i class="bi bi-shield-shaded text-purple"></i> Forward Secrecy: <span class="text-success">Active</span></span>
+          </div>
+
+          <!-- Messages Container -->
+          <div class="messages-area" id="messagesContainer">
+            <!-- Messages bubbles rendered here -->
+          </div>
+
+          <!-- Input Bar -->
+          <form class="chat-input-bar" id="sendMessageForm">
+            <input type="text" id="messageTextInput" placeholder="Type an encrypted message..." autocomplete="off">
+            <button type="submit" class="btn-primary"><i class="bi bi-send-fill"></i> Send</button>
+          </form>
+        </div>
+      </section>
+    </div>
+
+    <!-- 3. ATTACK DEMONSTRATION LAB TAB -->
+    <div id="attackLabTab" style="display: none; width: 100%; height: 100%; padding: 24px; overflow-y: auto;">
+      <div style="max-width: 1000px; margin: 0 auto;">
+        <div style="margin-bottom: 24px;">
+          <h2><i class="bi bi-lightning-charge-fill text-warning"></i> Attacker Demonstration Toolkit</h2>
+          <p class="meta-tag" style="margin-top: 4px; font-size: 0.9rem;">
+            Empirically prove security properties and demonstrate attacks against <strong>Weak Mode</strong> vs <strong>Secure Mode</strong>.
+          </p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; margin-bottom: 24px;">
+          <!-- Attack Card 1 -->
+          <div class="modal-content" style="width: 100%;">
+            <div style="color: var(--accent-blue); font-weight: 700; font-size: 1rem; margin-bottom: 8px;">
+              <i class="bi bi-search"></i> Attack 1: Passive Sniffing
+            </div>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 14px;">
+              Simulates an eavesdropper capturing network packets and inspecting server database dumps.
+            </p>
+            <button id="runAttack1Btn" class="btn-primary" style="width: 100%;"><i class="bi bi-play-fill"></i> Sniff Network & DB Dump</button>
+          </div>
+
+          <!-- Attack Card 2 -->
+          <div class="modal-content" style="width: 100%;">
+            <div style="color: var(--accent-yellow); font-weight: 700; font-size: 1rem; margin-bottom: 8px;">
+              <i class="bi bi-scissors"></i> Attack 2: Tamper & Replay
+            </div>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 14px;">
+              Injects bit-flipped ciphertexts or replays old packets to test AES-256-GCM AEAD authentication.
+            </p>
+            <div style="display: flex; gap: 8px;">
+              <button id="runAttack2TamperBtn" class="btn-secondary" style="flex: 1;"><i class="bi bi-shuffle"></i> Bit-Flip Tamper</button>
+              <button id="runAttack2ReplayBtn" class="btn-secondary" style="flex: 1;"><i class="bi bi-arrow-repeat"></i> Replay Packet</button>
+            </div>
+          </div>
+
+          <!-- Attack Card 3 -->
+          <div class="modal-content" style="width: 100%;">
+            <div style="color: var(--accent-red); font-weight: 700; font-size: 1rem; margin-bottom: 8px;">
+              <i class="bi bi-person-x-fill"></i> Attack 3: MitM Key Substitution
+            </div>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 14px;">
+              Simulates malicious server/MitM replacing Bob's public keys with Mallory's keys.
+            </p>
+            <button id="runAttack3Btn" class="btn-primary" style="width: 100%; background: #dc2626;"><i class="bi bi-shield-slash"></i> Test MitM Substitution</button>
+          </div>
+        </div>
+
+        <!-- Terminal Output Window -->
+        <div style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-weight: 600; font-size: 0.9rem;"><i class="bi bi-terminal-fill"></i> Attacker Toolkit Console Output</span>
+          <button id="clearTerminalBtn" class="btn-secondary" style="padding: 2px 8px; font-size: 0.75rem;">Clear Console</button>
+        </div>
+        <div id="attackConsoleOutput" class="terminal-window">Ready. Select an attack above to execute.</div>
+      </div>
+    </div>
+
+    <!-- 4. RELAY PACKET INSPECTOR TAB -->
+    <div id="inspectorTab" style="display: none; width: 100%; height: 100%; padding: 24px; overflow-y: auto;">
+      <div style="max-width: 1000px; margin: 0 auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <div>
+            <h2><i class="bi bi-hdd-network-fill text-info"></i> Zero-Knowledge Relay Inspector</h2>
+            <p class="meta-tag">Live stream of raw packets arriving at the relay server. Proves zero plaintext touches the server.</p>
+          </div>
+          <button id="refreshInspectorBtn" class="btn-secondary"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+        </div>
+
+        <div id="packetStreamContainer">
+          <!-- Dynamically populated packets -->
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- SAFETY NUMBER MODAL -->
+  <div id="safetyNumberModal" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3><i class="bi bi-patch-check-fill text-info"></i> Verify Safety Number</h3>
+        <button id="closeSafetyModalBtn" class="btn-secondary" style="padding: 2px 8px;"><i class="bi bi-x-lg"></i></button>
+      </div>
+
+      <p style="font-size: 0.85rem; color: var(--text-muted);">
+        Compare this 60-digit safety number with <strong id="modalContactName">Bob</strong> out-of-band (e.g. in person or voice call) to verify end-to-end security and guarantee no Man-in-the-Middle exists.
+      </p>
+
+      <div class="safety-number-box" id="modalSafetyNumberDigits">
+        00000 00000 00000 00000 00000 00000<br>
+        00000 00000 00000 00000 00000 00000
+      </div>
+
+      <div id="modalMitmAlertWarning" style="display: none; background: rgba(239, 68, 68, 0.2); border: 1px solid var(--accent-red); padding: 10px; border-radius: 8px; margin-bottom: 16px; font-size: 0.85rem; color: #fca5a5;">
+        <i class="bi bi-exclamation-octagon-fill"></i> <strong>SECURITY ALERT:</strong> Fingerprints do not match! Possible active key substitution.
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; cursor: pointer;">
+          <input type="checkbox" id="markVerifiedCheckbox"> Mark as Verified
+        </label>
+        <button id="doneSafetyModalBtn" class="btn-primary">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CRYPTOGRAPHIC PACKET INSPECTION MODAL (Clicking message bubble) -->
+  <div id="packetDetailModal" class="modal-overlay" style="display: none;">
+    <div class="modal-content" style="max-width: 650px;">
+      <div class="modal-header">
+        <h3><i class="bi bi-file-earmark-code-fill text-warning"></i> Cryptographic Packet Details</h3>
+        <button id="closePacketModalBtn" class="btn-secondary" style="padding: 2px 8px;"><i class="bi bi-x-lg"></i></button>
+      </div>
+      <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">
+        Raw wire payload transmitted through the relay server for this message:
+      </p>
+      <div id="packetDetailJson" class="terminal-window" style="font-size: 0.75rem;"></div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="js/crypto/noble-curves.js"></script>
+  <script src="js/crypto/primitives.js"></script>
+  <script src="js/crypto/x3dh.js"></script>
+  <script src="js/crypto/double_ratchet.js"></script>
+  <script src="js/crypto/safety_number.js"></script>
+  <script src="js/crypto/keystore.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/socket.js"></script>
+  <script src="js/chat.js"></script>
+  <script src="js/attack_lab.js"></script>
+  <script src="js/ui.js"></script>
+</body>
+</html>
