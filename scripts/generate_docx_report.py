@@ -158,3 +158,4 @@ doc.add_paragraph(
 
 doc.save("docs/l236038_Final_Project_Report.docx")
 print("Successfully generated docs/l236038_Final_Project_Report.docx")
+

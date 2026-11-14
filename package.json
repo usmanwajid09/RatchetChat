@@ -12,6 +12,7 @@
     "attack:sniff": "node attack_toolkit/eavesdrop_attack.js",
     "attack:tamper": "node attack_toolkit/tamper_replay_attack.js",
     "attack:mitm": "node attack_toolkit/mitm_attack.js",
+    "demo": "node scripts/run_live_demo.js",
     "bundle:curves": "node scripts/bundle-curves.js"
   },
   "author": "Usman Wajid (23L-6038) - FAST NUCES",

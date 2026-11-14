@@ -109,3 +109,4 @@ Show Sir the 24/24 passing unit/integration assertions and the benchmark table s
 ### Q5: How do Safety Numbers defeat a Man-in-the-Middle attack?
 **Model Answer:**
 > "If a malicious relay server attempts an active MitM attack by replacing Bob's public keys with Mallory's keys, Alice will establish a session with Mallory instead of Bob. However, because Safety Numbers are deterministically derived via 1,000 rounds of SHA-512 over the lexicographically sorted long-term Ed25519 identity keys of the participants, Alice's computed Safety Number with Mallory will completely diverge from Bob's Safety Number. When Alice and Bob compare their 60-digit numbers out-of-band (e.g. in person or on a phone call), the mismatch immediately exposes the interception."
+
