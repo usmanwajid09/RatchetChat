@@ -170,3 +170,4 @@ While RatchetChat provides provable confidentiality, integrity, forward secrecy,
 1. **Protocol Invariants Over Cipher Strength:** Attacks against modern cryptography almost never target the underlying AES or ECC mathematics; vulnerabilities arise in key exchange orchestration, lack of prekey signatures, or improper state cleanup.
 2. **Memory Zeroization is Paramount:** Forward secrecy is theoretical unless message keys are actively expunged from memory immediately after use.
 3. **Usability of Key Verification:** Mathematical security against MitM is ineffective if users cannot easily compare fingerprints. Formatting the SHA-512 digest into distinct 5-digit chunks (Signal format) significantly reduces visual fatigue and error rates during verification.
+

@@ -223,3 +223,4 @@ async function runAllBenchmarks() {
 }
 
 runAllBenchmarks().catch(console.error);
+

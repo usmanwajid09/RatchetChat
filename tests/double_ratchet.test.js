@@ -93,3 +93,4 @@ testDoubleRatchet().catch((err) => {
   console.error('[FAIL] Double Ratchet test failed:', err);
   process.exit(1);
 });
+

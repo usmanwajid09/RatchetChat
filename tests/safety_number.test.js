@@ -47,3 +47,4 @@ testSafetyNumber().catch((err) => {
   console.error('[FAIL] Safety Number test failed:', err);
   process.exit(1);
 });
+

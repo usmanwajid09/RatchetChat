@@ -62,3 +62,4 @@ testX3DH().catch((err) => {
   console.error('[FAIL] X3DH test failed:', err);
   process.exit(1);
 });
+
